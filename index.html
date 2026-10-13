@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrintSplit & Pin — The Fastest Native Mac Tool to Split 3D Prints & Carve Alignment Pins</title>
+  <meta name="description" content="Native macOS 3D model splitter and alignment pin generator. 0.1s startup, 100% watertight manifold STLs, automatic socket carving, and 1-click OrcaSlicer & Bambu Studio export.">
+  <link rel="icon" type="image/png" href="assets/app_icon.png">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-card: rgba(22, 27, 34, 0.85);
+      --bg-card-hover: rgba(30, 38, 48, 0.95);
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+      --border: rgba(240, 246, 252, 0.12);
+      --accent: #a855f7;
+      --accent-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      --cyan: #06b6d4;
+      --green: #22c55e;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .glow-bg {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1100px;
+      height: 550px;
+      background: radial-gradient(circle at 50% 25%, rgba(168, 85, 247, 0.22), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      padding: 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .btn-buy-nav {
+      background: var(--accent-gradient);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 14px;
+      transition: opacity 0.2s;
+    }
+
+    .btn-buy-nav:hover {
+      opacity: 0.9;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 50px;
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #d8b4fe;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(38px, 5.5vw, 62px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      margin-bottom: 22px;
+    }
+
+    h1 span {
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: clamp(17px, 2.2vw, 21px);
+      color: var(--text-muted);
+      max-width: 780px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-gradient);
+      color: #fff;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 25px rgba(168, 85, 247, 0.35);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(168, 85, 247, 0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      padding: 16px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .hero-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Preview Image */
+    .preview-container {
+      margin: 40px auto 70px;
+      background: #000;
+      border-radius: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      max-width: 1040px;
+    }
+
+    .preview-container img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      display: block;
+    }
+
+    /* Features Grid */
+    .section-title {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .section-title h2 {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .section-title p {
+      color: var(--text-muted);
+      font-size: 17px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 80px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(168, 85, 247, 0.4);
+      transform: translateY(-3px);
+    }
+
+    .card-icon {
+      font-size: 30px;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* Comparison Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow-x: auto;
+      margin-bottom: 80px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+
+    th {
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    th.highlight, td.highlight {
+      background: rgba(168, 85, 247, 0.08);
+      color: #e9d5ff;
+      font-weight: 600;
+    }
+
+    /* Bundle Banner */
+    .bundle-box {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(6, 182, 212, 0.15));
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .bundle-box h3 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .bundle-box p {
+      color: #cbd5e1;
+      font-size: 17px;
+      max-width: 650px;
+      margin: 0 auto 24px;
+    }
+
+    /* FAQ */
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto 80px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+
+    .faq-item h4 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .faq-item p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    footer a {
+      color: var(--text-main);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <div class="container">
+    <header>
+      <a href="#" class="brand">
+        <img src="assets/app_icon.png" alt="PrintSplit Logo">
+        <span>PrintSplit & Pin</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#comparison">Why PrintSplit</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=niko.pietinen%40gmail.com&item_name=PrintSplit+Pro+Lifetime+License&amount=29.00&currency_code=EUR&no_shipping=1" class="btn-buy-nav">Buy Pro (29 €)</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="badge">🚀 Native Mac 3D Printing Utility • Universal arm64 + x86_64</div>
+      <h1>Split Huge 3D Prints.<br><span>Auto-Carve Watertight Pins.</span></h1>
+      <p class="hero-sub">
+        Got a model too large for your print bed? Slice it in 1 click, auto-generate alignment dowel pins with custom clearance, and launch straight into OrcaSlicer & Bambu Studio.
+      </p>
+
+      <div class="hero-actions">
+        <a href="https://github.com/pietini69/printsplit/releases/download/v1.0.0/PrintSplit-1.0.dmg" class="btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Free Trial (DMG, 951 KB)
+        </a>
+        <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=niko.pietinen%40gmail.com&item_name=PrintSplit+Pro+Lifetime+License&amount=29.00&currency_code=EUR&no_shipping=1" class="btn-secondary">
+          Buy Pro Lifetime (29 €)
+        </a>
+      </div>
+      <div class="hero-meta">
+        Free 14-day full trial • Universal macOS 14+ • 0.1s startup • 100% Offline
+      </div>
+    </section>
+
+    <div class="preview-container">
+      <img src="assets/orcaslicer_preview.png" alt="PrintSplit generated models resting on OrcaSlicer build plate with zero manifold errors">
+    </div>
+
+    <section id="features">
+      <div class="section-title">
+        <h2>Designed Specifically for 3D Printing</h2>
+        <p>No bloated CAD constraint solvers. No clunky slicer cut tools. Just clean, mechanical joints.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-icon">⚡️</span>
+          <h3>Instant 1-Click Plane Cut</h3>
+          <p>Cut along Z, Y, or X axes or enter exact cut heights. The real-time 3D SceneKit viewport shows both halves instantly with exploded viewing.</p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">📌</span>
+          <h3>Mechanical Dowel Pins & Sockets</h3>
+          <p>Automatically calculates optimal pin locations. Carves precise socket cavities into Part A and Part B with configurable clearance (0.2 mm default).</p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🛡️</span>
+          <h3>100% Watertight Manifold Meshes</h3>
+          <p>Delaunay planar cap triangulation matches exact boundary vertices. Zero open edges, zero non-manifold edges. Never see "Fix Model" errors again.</p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🖨️</span>
+          <h3>Auto-Arranged Build Plate Layout</h3>
+          <p>Both split parts and upright printable pins are placed flat on the build bed ($Z = 0$), pre-spaced side-by-side to prevent bounding collisions.</p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🚀</span>
+          <h3>1-Click OrcaSlicer & Bambu Studio</h3>
+          <p>One button exports clean binary STLs and directly activates OrcaSlicer or Bambu Studio, with all parts loaded on your printer plate ready to slice.</p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🔒</span>
+          <h3>100% Native & Private</h3>
+          <p>Built with Swift and Metal/SceneKit. 0.1 second launch time. The entire application is under 1 MB. No telemetry, no accounts, no cloud sync delays.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparison">
+      <div class="section-title">
+        <h2>Why Makers Choose PrintSplit</h2>
+        <p>Compare PrintSplit & Pin against traditional slicing and heavy CAD suites.</p>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight">PrintSplit & Pin</th>
+              <th>Slicer Cut Tools</th>
+              <th>Fusion 360 / Blender</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Startup Time</strong></td>
+              <td class="highlight"><strong>0.1 seconds</strong></td>
+              <td>10–15 seconds</td>
+              <td>25–40 seconds</td>
+            </tr>
+            <tr>
+              <td><strong>Download Size</strong></td>
+              <td class="highlight"><strong>951 KB</strong></td>
+              <td>250+ MB</td>
+              <td>2.5+ GB</td>
+            </tr>
+            <tr>
+              <td><strong>Socket Carving</strong></td>
+              <td class="highlight"><strong>Automatic with clearance</strong></td>
+              <td>Manual peg placement</td>
+              <td>Manual boolean subtraction</td>
+            </tr>
+            <tr>
+              <td><strong>Mesh Manifold Quality</strong></td>
+              <td class="highlight"><strong>Guaranteed 0 open edges</strong></td>
+              <td>Frequent non-manifold errors</td>
+              <td>Frequent mesh import crashes</td>
+            </tr>
+            <tr>
+              <td><strong>Print Bed Placement</strong></td>
+              <td class="highlight"><strong>Pre-spaced at Z = 0</strong></td>
+              <td>Manual drop & re-orient</td>
+              <td>Manual export & coordinate shift</td>
+            </tr>
+            <tr>
+              <td><strong>Pricing</strong></td>
+              <td class="highlight"><strong>29 € one-time (Lifetime)</strong></td>
+              <td>Free (Basic)</td>
+              <td>600 € / year subscription</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="bundle-box">
+      <h3>🔥 The Complete Mac Maker Pro Bundle</h3>
+      <p>Combine <strong>PrintCAD</strong> (Fast Native CAD with DIN Fasteners) and <strong>PrintSplit & Pin</strong> (Split & Alignment Pin Generator) for the ultimate 3D printing workflow.</p>
+      <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=niko.pietinen%40gmail.com&item_name=Maker+Pro+Bundle+(PrintCAD+++PrintSplit)&amount=39.00&currency_code=EUR&no_shipping=1" class="btn-primary" style="background: linear-gradient(135deg, #06b6d4 0%, #a855f7 100%);">
+        Get Both for 39 € (Save 19 €)
+      </a>
+    </div>
+
+    <section id="faq">
+      <div class="section-title">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <h4>How does the free trial work?</h4>
+          <p>PrintSplit includes a fully functional 14-day free trial. You can split models, generate pins, and test the 1-click slicer export with zero restrictions. No account or credit card required.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Which 3D printers and slicers are supported?</h4>
+          <p>PrintSplit exports standard high-precision binary STL files compatible with all slicers (OrcaSlicer, Bambu Studio, PrusaSlicer, Cura, Anycubic). The 1-click launch button detects OrcaSlicer and Bambu Studio automatically.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Can I adjust the clearance between pins and holes?</h4>
+          <p>Yes! FDM 3D printers typically need 0.15 mm to 0.25 mm clearance so pins slide in smoothly with a firm friction fit. You can freely adjust the clearance, pin diameter, and pin length in the settings sidebar.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Does PrintSplit run on Apple Silicon?</h4>
+          <p>Yes. PrintSplit is compiled as a Universal macOS binary with full native support for Apple Silicon (M1, M2, M3, M4) and Intel Macs running macOS 14 Sonoma or newer.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 PNP Software / Niko Pietinen. All rights reserved.</p>
+      <p style="margin-top: 8px;">
+        <a href="https://pnpsoft.pages.dev">PNP Software</a> • 
+        <a href="https://github.com/pietini69/printsplit">GitHub</a> • 
+        <a href="mailto:niko.pietinen@gmail.com">Support</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
